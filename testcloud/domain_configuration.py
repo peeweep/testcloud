@@ -32,10 +32,11 @@ class X86_64ArchitectureConfiguration(ArchitectureConfiguration):
     arch = "x86_64"
     model = "q35"
 
-    def __init__(self, kvm=True, uefi=False, model="q35") -> None:
+    def __init__(self, kvm=True, uefi=False, model="q35", cpu_model="qemu64") -> None:
         self.kvm = kvm
         self.uefi = uefi
         self.model = model
+        self.cpu_model = cpu_model
 
     def generate(self):
         return """
@@ -62,7 +63,7 @@ class X86_64ArchitectureConfiguration(ArchitectureConfiguration):
             cpu=(
                 "<cpu mode='host-passthrough' check='none' migratable='on'/>"
                 if self.kvm
-                else "<cpu mode='custom' match='exact'><model>qemu64</model></cpu>"
+                else "<cpu mode='custom' match='exact'><model>{cpu_model}</model></cpu>".format(cpu_model=self.cpu_model)
             ),
         )
 
@@ -72,10 +73,11 @@ class AArch64ArchitectureConfiguration(ArchitectureConfiguration):
     arch = "aarch64"
     model = "virt"
 
-    def __init__(self, kvm=True, uefi=True, model="virt") -> None:
+    def __init__(self, kvm=True, uefi=True, model="virt", cpu_model="cortex-a57") -> None:
         self.kvm = kvm
         self.uefi = uefi
         self.model = model
+        self.cpu_model = cpu_model
 
     def generate(self) -> str:
         return """
@@ -97,7 +99,7 @@ class AArch64ArchitectureConfiguration(ArchitectureConfiguration):
             cpu=(
                 "<cpu mode='host-passthrough' check='none'/>"
                 if self.kvm
-                else "<cpu mode='custom' match='exact'><model>cortex-a57</model></cpu>"
+                else "<cpu mode='custom' match='exact'><model>{cpu_model}</model></cpu>".format(cpu_model=self.cpu_model)
             ),
         )
 
@@ -107,10 +109,11 @@ class Ppc64leArchitectureConfiguration(ArchitectureConfiguration):
     arch = "ppc64le"
     model = "pseries"
 
-    def __init__(self, kvm=True, uefi=False, model="pseries") -> None:
+    def __init__(self, kvm=True, uefi=False, model="pseries", cpu_model="POWER9") -> None:
         self.kvm = kvm
         self.uefi = uefi
         self.model = model
+        self.cpu_model = cpu_model
 
     def generate(self) -> str:
         return """
@@ -126,7 +129,7 @@ class Ppc64leArchitectureConfiguration(ArchitectureConfiguration):
             cpu=(
                 "<cpu mode='host-passthrough' check='none'/>"
                 if self.kvm
-                else "<cpu mode='custom' match='exact' check='none'><model fallback='forbid'>POWER9</model></cpu>"
+                else "<cpu mode='custom' match='exact' check='none'><model fallback='forbid'>{cpu_model}</model></cpu>".format(cpu_model=self.cpu_model)
             ),
         )
 
@@ -136,10 +139,11 @@ class S390xArchitectureConfiguration(ArchitectureConfiguration):
     arch = "s390x"
     model = "s390-ccw-virtio"
 
-    def __init__(self, kvm=True, uefi=False, model="s390-ccw-virtio") -> None:
+    def __init__(self, kvm=True, uefi=False, model="s390-ccw-virtio", cpu_model="qemu") -> None:
         self.kvm = kvm
         self.uefi = uefi
         self.model = model
+        self.cpu_model = cpu_model
 
     def generate(self) -> str:
         return """
@@ -151,7 +155,11 @@ class S390xArchitectureConfiguration(ArchitectureConfiguration):
         """.format(
             arch=self.arch,
             model=self.model,
-            cpu="<cpu mode='host-passthrough' check='none'/>" if self.kvm else "<cpu mode='custom' match='exact'><model>qemu</model></cpu>",
+            cpu=(
+                "<cpu mode='host-passthrough' check='none'/>"
+                if self.kvm
+                else "<cpu mode='custom' match='exact'><model>{cpu_model}</model></cpu>".format(cpu_model=self.cpu_model)
+            ),
         )
 
 
@@ -160,10 +168,11 @@ class Riscv64ArchitectureConfiguration(ArchitectureConfiguration):
     arch = "riscv64"
     model = "virt"
 
-    def __init__(self, kvm=True, uefi=True, model="virt") -> None:
+    def __init__(self, kvm=True, uefi=True, model="virt", cpu_model="rv64") -> None:
         self.kvm = kvm
         self.uefi = uefi
         self.model = model
+        self.cpu_model = cpu_model
 
     def generate(self) -> str:
         return """
@@ -180,7 +189,7 @@ class Riscv64ArchitectureConfiguration(ArchitectureConfiguration):
             cpu=(
                 "<cpu mode='host-passthrough' check='none'/>"
                 if self.kvm
-                else "<cpu mode='custom' match='exact'><model>rv64</model></cpu>"
+                else "<cpu mode='custom' match='exact'><model>{cpu_model}</model></cpu>".format(cpu_model=self.cpu_model)
             ),
         )
 
@@ -435,7 +444,7 @@ class DomainConfiguration:
         for network_device in self.network_devices + ([self.network_configuration] if self.network_configuration else []):
             self.qemu_args.extend(network_device.additional_qemu_args)
         if self.coreos:
-            if type(self.system_architecture) in [AArch64ArchitectureConfiguration, X86_64ArchitectureConfiguration, Riscv64ArchitectureConfiguration]:
+            if type(self.system_architecture) in [AArch64ArchitectureConfiguration, X86_64ArchitectureConfiguration]:
                 self.qemu_args.extend(["-fw_cfg", "name=opt/com.coreos/config,file=%s" % self.config_path])
             else:
                 self.qemu_args.extend(
